@@ -23,10 +23,16 @@ def index():
     return redirect('/blog')
 
 @app.route('/blog')
-def all_entries():
+def entries():
+    entry_id = request.args.get('id')
+    if entry_id:
+        entry = Blog.query.filter_by(id=entry_id).first()
+        return render_template('display.html', title= entry.title, body= entry.body)
     
-    all_entries = Blog.query.all()
-    return render_template('all-entries.html', all_entries = all_entries) 
+    else:
+        entries = Blog.query.all()
+        return render_template('all-entries.html', all_entries = entries)
+
 
 @app.route('/newpost', methods=['POST', 'GET'])
 def newpost():
@@ -43,7 +49,7 @@ def newpost():
         else:    
             db.session.add(new_post)
             db.session.commit()
-            return redirect('/blog')
+            return redirect('/blog?id={0}'.format(new_post.id))
     else:
         return render_template('add-a-new-post.html')
 
