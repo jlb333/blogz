@@ -2,12 +2,19 @@
 
 {% block content %}
 
+<h1>Blog Entries</h1>
 <ul>
+    {% for entry in indiv_entries %}
         <li>
-            <h2> {{ entry.title }}</h2>
+            <h2>
+                <a href="/blog?id={{ entry.id }}">{{ entry.title }}</a>
+            </h2>
             <p>{{ entry.body }}</p>
             <p>written by <a href="/blog?user={{ entry.owner_id }}">{{ entry.owner.username }}</a></p>
         </li>
+
+    {% endfor %}
 </ul>
+
 
 {% endblock %}

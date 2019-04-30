@@ -33,16 +33,107 @@ class User(db.Model):
         self.password = password
 
 
+@app.before_request
+def require_login():
+    allowed_routes = ['login', 'signup', 'entries', 'index']
+    if request.endpoint not in allowed_routes and 'username' not in session:
+        return redirect('/login')
+
+
+
+@app.route('/login', methods=['POST', 'GET'])
+def login():
+    username_error = ""
+    password_error = ""
+
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+
+        if user and user.password == password:
+            session['username'] = username
+            return redirect('/newpost')
+        
+        if not user:
+            username_error ="User does not exist"
+            return render_template('login.html', username_error = username_error)
+        
+        if user and user.password != password:
+            password_error ="User password incorrect"
+            return render_template('login.html', username=username, password_error = password_error)
+    
+    return render_template('login.html')
+
+
+@app.route('/signup', methods=['POST', 'GET'])
+def signup():
+    username_error =""
+    password_error =""
+    verify_password_error=""
+    existing_user_error=""
+
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        verify = request.form['verify']
+
+        existing_user = User.query.filter_by(username=username).first()
+        
+        if existing_user:
+            existing_user_error ="Username already exists"
+            return render_template('signup.html', existing_user_error=existing_user_error)
+
+        if " " in username or len(username) < 3:
+            username_error = "Not a valid username; must be 3 or more characters in length with no spaces"
+            return render_template('signup.html', username_error = username_error)
+
+        if " " in password or len(password) < 3:
+            password_error = "Not a valid password; must be 3 or more characters in length with no spaces"
+            password =""
+            return render_template('signup.html', username = username, 
+            password_error = password_error)
+
+        if password != verify:
+            verify_password_error = "Passwords do not match"
+            verify = ""
+            return render_template('signup.html', username = username,
+            password=password, verify_password_error = verify_password_error)
+
+
+        if not existing_user and not username_error and not password_error and not verify_password_error:
+            new_user = User(username, password)
+            db.session.add(new_user)
+            db.session.commit()
+            session['username'] = username 
+            return redirect('/newpost')
+    
+    else:
+        return render_template('signup.html')
+
+
+@app.route('/logout', methods=['POST', 'GET'])
+def logout():
+    del session['username']
+    return redirect('/blog')
+    
+
 @app.route('/')
 def index():
-    return redirect('/blog')
+    blog_users = User.query.all()
+    return render_template('index.html', blog_users= blog_users)
 
-@app.route('/blog')
+@app.route('/blog', methods=['POST', 'GET'])
 def entries():
+    user_entries = request.args.get('user')
+    if user_entries:
+        indiv_entries = Blog.query.filter_by(owner_id = user_entries).all()
+        return render_template('indiv-user-posts.html', indiv_entries=indiv_entries)
+    
     entry_id = request.args.get('id')
     if entry_id:
-        entry = Blog.query.filter_by(id=entry_id).first()
-        return render_template('display.html', title= entry.title, body= entry.body)
+        entry = Blog.query.get(entry_id)
+        return render_template('display.html', entry=entry )
     
     else:
         entries = Blog.query.all()
@@ -51,6 +142,8 @@ def entries():
 
 @app.route('/newpost', methods=['POST', 'GET'])
 def newpost():
+
+    owner = User.query.filter_by(username=session['username']).first()
 
     if request.method == 'POST':
         blog_title = request.form['title']
@@ -62,17 +155,14 @@ def newpost():
 
         if blog_title == "" and blog_body == "":
             two_errors = 'Please enter a title and content for the blog entry'
-            #flash('Please enter a title and content for the blog entry', 'error')
             return render_template ('add-a-new-post.html', title= blog_title, body= blog_body, two_errors=two_errors)
 
         if blog_title == "":
-            title_error = "Please enter a title"
-            #flash('Please enter a title', 'error') 
+            title_error = "Please enter a title" 
             return render_template ('add-a-new-post.html', title= blog_title, body= blog_body, title_error = title_error) 
             
         if blog_body == "":
             body_error = "Please enter content for the blog entry"
-            #flash('Please enter content for the blog entry', 'error')
             return render_template ('add-a-new-post.html', title= blog_title, body= blog_body, body_error= body_error)
     
         else:    

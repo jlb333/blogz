@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
     <head>
-        <title>Blog</title>
+        <title>Blogz</title>
     <style>
         .error {
             color:red;
@@ -9,9 +9,18 @@
     </style>
     </head>
 
+
     <nav><a href='/blog'>Main Blog Page</a></nav>
     <nav> <a href='/newpost'>Add a Blog Entry</a></nav>
 <body>
+
+    <div>
+        <a href='/logout'>Log Out</a>
+        <p></p>
+        <a href='/login'>Log In</a>
+        <p></p>
+        <a href='/'>Home</a>
+    </div>
 
     {% with messages = get_flashed_messages(with_categories=True) %}
         <ul>
